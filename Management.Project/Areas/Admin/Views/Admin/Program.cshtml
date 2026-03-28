@@ -1,0 +1,131 @@
+﻿@model List<Student.Management.Domain.Entities.Program>
+@{
+    ViewData["Title"] = "Programs Management";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>Programs</h1>
+        <p>Manage academic programs</p>
+    </div>
+    <div class="table-actions">
+        <button class="btn btn-primary btn-add" onclick="openProgramModal()">
+            <i class="bi bi-plus"></i> Add Program
+        </button>
+    </div>
+</div>
+
+<div class="table-container">
+    <div class="table-header">
+        <h3>All Programs (@Model.Count)</h3>
+        <div class="search-box">
+            <i class="bi bi-search"></i>
+            <!-- Đặt ID chuẩn -->
+            <input type="text" id="searchPrograms" placeholder="Search programs...">
+        </div>
+    </div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td><b>@item.Name</b></td>
+                    <td>@item.Description</td>
+                    <td>
+                        <span class="status-badge @(item.IsActive ? "status-active" : "status-inactive")">
+                            @(item.IsActive ? "Active" : "Inactive")
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn-icon btn-edit" onclick="editProgram(@item.Id)"><i class="bi bi-pencil"></i></button>
+                        <button class="btn-icon btn-delete" onclick="deleteProgram(@item.Id)"><i class="bi bi-trash"></i></button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal Program -->
+<div id="progModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
+    <div class="modal-content" style="background:white; width:500px; margin:100px auto; padding:20px; border-radius:8px;">
+        <h3 id="progModalTitle">Add Program</h3>
+        <input type="hidden" id="progId">
+        <div class="form-group mb-2"><label>Name</label><input type="text" id="progName" class="form-control" style="width:100%"></div>
+        <div class="form-group mb-2"><label>Description</label><textarea id="progDesc" class="form-control" style="width:100%"></textarea></div>
+        <div class="form-group mb-2">
+            <label>Status</label>
+            <select id="progStatus" class="form-control" style="width:100%; padding:8px"><option value="true">Active</option><option value="false">Inactive</option></select>
+        </div>
+        <div style="text-align:right; margin-top:20px;">
+            <button class="btn btn-outline" onclick="document.getElementById('progModal').style.display='none'">Cancel</button>
+            <button class="btn btn-primary" onclick="saveProgram()">Save</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // --- CHỨC NĂNG TÌM KIẾM ---
+        document.getElementById('searchPrograms')?.addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase();
+            document.querySelectorAll('.table tbody tr').forEach(row => {
+                row.style.display = row.innerText.toLowerCase().includes(term) ? '' : 'none';
+            });
+        });
+
+        // --- MODAL LOGIC ---
+        function openProgramModal() {
+            document.getElementById('progModal').style.display = 'block';
+            document.getElementById('progModalTitle').innerText = 'Add Program';
+            document.getElementById('progId').value = '';
+            document.getElementById('progName').value = '';
+            document.getElementById('progDesc').value = '';
+            document.getElementById('progStatus').value = 'true';
+        }
+
+        async function saveProgram() {
+            const id = document.getElementById('progId').value;
+            const data = {
+                id: id ? parseInt(id) : 0,
+                name: document.getElementById('progName').value,
+                description: document.getElementById('progDesc').value,
+                isActive: document.getElementById('progStatus').value === 'true'
+            };
+            const url = id ? '/Admin/Admin/UpdateProgram' : '/Admin/Admin/CreateProgram';
+            try {
+                const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                if((await res.json()).success) location.reload();
+            } catch(e) { alert('Error saving program'); }
+        }
+
+        async function editProgram(id) {
+            const res = await fetch(`/Admin/Admin/GetProgram?id=${id}`);
+            const result = await res.json();
+            if(result.success) {
+                openProgramModal();
+                document.getElementById('progModalTitle').innerText = 'Edit Program';
+                document.getElementById('progId').value = result.data.id;
+                document.getElementById('progName').value = result.data.name;
+                document.getElementById('progDesc').value = result.data.description;
+                document.getElementById('progStatus').value = result.data.isActive ? 'true' : 'false';
+            }
+        }
+
+        async function deleteProgram(id) {
+            if(confirm('Delete this program?')) {
+                const res = await fetch(`/Admin/Admin/DeleteProgram?id=${id}`, { method: 'POST' });
+                if((await res.json()).success) location.reload();
+            }
+        }
+    </script>
+}

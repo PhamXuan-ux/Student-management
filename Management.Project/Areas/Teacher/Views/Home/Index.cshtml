@@ -1,0 +1,157 @@
+﻿@model List<Student.Management.Domain.Entities.Class>
+@{
+    ViewData["Title"] = "Teacher Dashboard";
+    Layout = "~/Areas/Teacher/Views/Shared/_TeacherLayout.cshtml";
+    var weeklySchedules = ViewBag.WeeklySchedule as List<dynamic>;
+    var classesNeedGrading = ViewBag.ClassesNeedGrading as List<Student.Management.Domain.Entities.Class>;
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>Instructor Dashboard</h1>
+        <p>Welcome back! Here's your teaching overview.</p>
+    </div>
+</div>
+
+<!-- Statistics -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <h3>Total Classes</h3>
+            <div class="stat-icon"><i class="bi bi-easel"></i></div>
+        </div>
+        <div class="stat-number">@ViewBag.TotalClasses</div>
+        <div class="stat-label">Active: @ViewBag.ActiveClasses</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <h3>Total Students</h3>
+            <div class="stat-icon"><i class="bi bi-people"></i></div>
+        </div>
+        <div class="stat-number">@ViewBag.TotalStudents</div>
+        <div class="stat-label">Across all classes</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <h3>Need Grading</h3>
+            <div class="stat-icon"><i class="bi bi-clipboard-check"></i></div>
+        </div>
+        <div class="stat-number">@classesNeedGrading?.Count</div>
+        <div class="stat-label">Classes pending grades</div>
+    </div>
+</div>
+
+<div class="row" style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 2rem;">
+
+    <!-- Weekly Schedule -->
+    <div class="table-container" style="flex: 1; min-width: 300px;">
+        <div class="table-header">
+            <h3> Weekly Schedule</h3>
+        </div>
+        @if (weeklySchedules != null && weeklySchedules.Any())
+        {
+            <table class="table">
+                <tbody>
+                    @foreach (var schedule in weeklySchedules)
+                    {
+                        <tr>
+                            <td style="width: 80px;">
+                                <span class="role-badge teacher">@schedule.Day</span>
+                            </td>
+                            <td style="color: var(--primary); font-weight: bold;">@schedule.Time</td>
+                            <td>
+                                <strong>@schedule.ClassName</strong><br>
+                                <small>@schedule.Course • @schedule.Room</small>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="bi bi-calendar-x"></i>
+                <p>No schedule for this week.</p>
+            </div>
+        }
+    </div>
+
+    <!-- Classes Needing Attention -->
+    <div class="table-container" style="flex: 1; min-width: 300px;">
+        <div class="table-header">
+            <h3> My Classes</h3>
+        </div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Class Name</th>
+                    <th>Students</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    var studentCount = item.ClassStudents.Count;
+                    var gradedCount = item.ClassStudents.Count(cs => cs.Grade.HasValue);
+
+                    <tr>
+                        <td>
+                            <strong>@item.ClassName</strong><br>
+                            <small style="color: var(--text-secondary);">@item.Course?.CourseName</small>
+                        </td>
+                        <td>
+                            <span>@studentCount students</span><br>
+                            <small style="color: @(gradedCount == studentCount ? "var(--success)" : "var(--warning)");">
+                                @gradedCount/@studentCount graded
+                            </small>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="/Teacher/Home/ClassDetails/@item.Id" class="btn btn-primary btn-sm">Manage</a>
+                                <a href="/Teacher/Home/Attendance/@item.Id" class="btn btn-outline btn-sm">Attendance</a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+@if (classesNeedGrading?.Any() == true)
+{
+    <div class="table-container" style="margin-top: 2rem;">
+        <div class="table-header">
+            <h3> Classes Needing Grading</h3>
+        </div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Class Name</th>
+                    <th>Ungraded Students</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in classesNeedGrading)
+                {
+                    var ungradedCount = item.ClassStudents.Count(cs => !cs.Grade.HasValue);
+                    <tr>
+                        <td>@item.ClassName</td>
+                        <td>
+                            <span style="color: var(--warning); font-weight: bold;">@ungradedCount students</span>
+                        </td>
+                        <td>
+                            <a href="/Teacher/Home/ClassDetails/@item.Id" class="btn btn-primary btn-sm">Grade Now</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

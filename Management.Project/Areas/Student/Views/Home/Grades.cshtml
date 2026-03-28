@@ -1,0 +1,167 @@
+﻿@{
+    ViewData["Title"] = "My Grades";
+    Layout = "~/Areas/Student/Views/Shared/_StudentLayout.cshtml";
+    var detailedGrades = ViewBag.DetailedGrades as List<Student.Management.Domain.Entities.Grade>;
+    var classGrades = ViewBag.ClassGrades as List<dynamic>;
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1> My Grades</h1>
+        <p>Current GPA: <strong>@ViewBag.GPA</strong></p>
+    </div>
+</div>
+
+<!-- Grade Statistics -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <h3>Total Courses</h3>
+            <div class="stat-icon"><i class="bi bi-book"></i></div>
+        </div>
+        <div class="stat-number">@ViewBag.TotalCourses</div>
+        <div class="stat-label">Enrolled</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <h3>Passed</h3>
+            <div class="stat-icon"><i class="bi bi-check-circle"></i></div>
+        </div>
+        <div class="stat-number">@ViewBag.PassedCourses</div>
+        <div class="stat-label">Completed</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <h3>Failed</h3>
+            <div class="stat-icon"><i class="bi bi-x-circle"></i></div>
+        </div>
+        <div class="stat-number">@ViewBag.FailedCourses</div>
+        <div class="stat-label">Need to retake</div>
+    </div>
+
+    @* <div class="stat-card">
+        <div class="stat-card-header">
+            <h3>In Progress</h3>
+            <div class="stat-icon"><i class="bi bi-clock"></i></div>
+        </div>
+        <div class="stat-number">@ViewBag.InProgressCourses</div>
+        <div class="stat-label">Currently studying</div>
+    </div> *@
+</div>
+
+@* <!-- Course Final Grades -->
+<div class="table-container">
+    <div class="table-header">
+        <h3>Course Final Grades</h3>
+    </div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Course Name</th>
+                <th>Class</th>
+                <th>Instructor</th>
+                <th>Semester</th>
+                <th>Final Grade</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (classGrades != null && classGrades.Any())
+            {
+                foreach (var course in classGrades)
+                {
+                    <tr>
+                        <td>
+                            <strong>@course.CourseName</strong>
+                        </td>
+                        <td>@course.ClassName</td>
+                        <td>@course.Instructor</td>
+                        <td>
+                            @if (course.StartDate.HasValue)
+                            {
+                                <span>@course.StartDate.Value.Year</span>
+                            }
+                            else
+                            {
+                                <span>N/A</span>
+                            }
+                        </td>
+                        <td>
+                            @if (course.FinalGrade.HasValue)
+                            {
+                                <span style="font-weight: bold; font-size: 1.1em; color: var(--primary);">
+                                    @course.FinalGrade.Value.ToString("0.0")
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="status-badge status-pending">Not Graded</span>
+                            }
+                        </td>
+                        <td>
+                            @if (course.FinalGrade.HasValue)
+                            {
+                                <span class="status-badge @(course.Status == "Passed" ? "status-active" : "status-inactive")">
+                                    @course.Status
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="status-badge status-pending">@course.Status</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        No grade records found
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div> *@
+
+<!-- Detailed Grades -->
+@if (detailedGrades != null && detailedGrades.Any())
+{
+    <div class="table-container" style="margin-top: 2rem;">
+        <div class="table-header">
+            <h3>Detailed Grade History</h3>
+        </div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Course</th>
+                    <th>Grade Type</th>
+                    <th>Score</th>
+                    <th>Max Score</th>
+                    <th>Weight</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var grade in detailedGrades)
+                {
+                    <tr>
+                        <td>@grade.CreatedDate.ToString("MMM dd, yyyy")</td>
+                        <td>@grade.Class?.Course?.CourseName</td>
+                        <td>@grade.GradeType</td>
+                        <td>
+                            <span style="font-weight: bold; color: var(--primary);">
+                                @grade.Score.ToString("0.0")
+                            </span>
+                        </td>
+                        <td>@grade.MaxScore.ToString("0.0")</td>
+                        <td>@grade.Weight%</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

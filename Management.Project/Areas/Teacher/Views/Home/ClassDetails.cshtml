@@ -1,0 +1,214 @@
+﻿@model Student.Management.Domain.Entities.Class
+@{
+    ViewData["Title"] = "Class Management";
+    Layout = "~/Areas/Teacher/Views/Shared/_TeacherLayout.cshtml";
+    var grades = ViewBag.Grades as List<Student.Management.Domain.Entities.Grade>;
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <a href="/Teacher/Home/Index" style="color: var(--text-secondary); text-decoration: none;">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+        <h1 style="margin-top: 5px;">@Model.ClassName</h1>
+        <p>@Model.Course?.CourseName • @Model.Program?.Name</p>
+    </div>
+    <div class="table-actions">
+        <a href="/Teacher/Home/Attendance/@Model.Id" class="btn btn-outline">
+            <i class="bi bi-calendar-check"></i> Attendance
+        </a>
+    </div>
+</div>
+
+<!-- Class Statistics -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <h3>Total Students</h3>
+            <div class="stat-icon"><i class="bi bi-people"></i></div>
+        </div>
+        <div class="stat-number">@Model.ClassStudents.Count</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <h3>Grading Progress</h3>
+            <div class="stat-icon"><i class="bi bi-clipboard-check"></i></div>
+        </div>
+        <div class="stat-number">@ViewBag.GradedPercentage%</div>
+        <div class="stat-label">@Model.ClassStudents.Count(cs => cs.Grade.HasValue)/@Model.ClassStudents.Count graded</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <h3>Average Grade</h3>
+            <div class="stat-icon"><i class="bi bi-graph-up"></i></div>
+        </div>
+        <div class="stat-number">@ViewBag.AverageGrade.ToString("0.0")</div>
+        <div class="stat-label">Current average</div>
+    </div>
+</div>
+
+<!-- Grading Sheet -->
+<div class="table-container">
+    <div class="table-header">
+        <h3>📝 Grading Sheet</h3>
+        <div class="table-actions">
+            <button class="btn btn-primary" onclick="saveAllGrades()">
+                <i class="bi bi-save"></i> Save All Changes
+            </button>
+        </div>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th width="100">Quiz (20%)</th>
+                    <th width="100">Assignment (30%)</th>
+                    <th width="100">Midterm (20%)</th>
+                    <th width="100">Final (30%)</th>
+                    <th width="100">Final Grade</th>
+                    <th width="100">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var cs in Model.ClassStudents.OrderBy(cs => cs.StudentEntity?.Profile?.FullName))
+                {
+                    var quiz = grades?.FirstOrDefault(g => g.StudentEntityId == cs.StudentEntityId && g.GradeType == "Quiz")?.Score;
+                    var assignment = grades?.FirstOrDefault(g => g.StudentEntityId == cs.StudentEntityId && g.GradeType == "Assignment")?.Score;
+                    var midterm = grades?.FirstOrDefault(g => g.StudentEntityId == cs.StudentEntityId && g.GradeType == "Midterm")?.Score;
+                    var final = grades?.FirstOrDefault(g => g.StudentEntityId == cs.StudentEntityId && g.GradeType == "Final")?.Score;
+
+                    <tr>
+                        <td>
+                            <strong>@cs.StudentEntity?.Profile?.FullName</strong><br />
+                            <small style="color: var(--text-secondary);">@cs.StudentEntity?.Profile?.Email</small>
+                        </td>
+                        <td>
+                            <input type="number" class="form-control grade-input"
+                                   data-type="Quiz" data-id="@cs.StudentEntityId"
+                                   value="@quiz" min="0" max="10" step="0.1">
+                        </td>
+                        <td>
+                            <input type="number" class="form-control grade-input"
+                                   data-type="Assignment" data-id="@cs.StudentEntityId"
+                                   value="@assignment" min="0" max="10" step="0.1">
+                        </td>
+                        <td>
+                            <input type="number" class="form-control grade-input"
+                                   data-type="Midterm" data-id="@cs.StudentEntityId"
+                                   value="@midterm" min="0" max="10" step="0.1">
+                        </td>
+                        <td>
+                            <input type="number" class="form-control grade-input"
+                                   data-type="Final" data-id="@cs.StudentEntityId"
+                                   value="@final" min="0" max="10" step="0.1">
+                        </td>
+                        <td style="font-weight: bold; color: var(--primary); font-size: 1.1em;">
+                            @(cs.Grade?.ToString("0.0") ?? "N/A")
+                        </td>
+                        <td>
+                            @if (cs.Grade.HasValue)
+                            {
+                                <span class="status-badge @(cs.Grade >= 5 ? "status-active" : "status-inactive")">
+                                    @(cs.Grade >= 5 ? "Pass" : "Fail")
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="status-badge status-pending">Pending</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let pendingSaves = new Set();
+
+        document.querySelectorAll('.grade-input').forEach(input => {
+            input.addEventListener('change', function() {
+                const studentId = this.dataset.id;
+                const type = this.dataset.type;
+                const score = parseFloat(this.value) || 0;
+
+                // Validate score
+                if (score < 0 || score > 10) {
+                    this.style.borderColor = "#ef4444";
+                    alert('Score must be between 0 and 10');
+                    return;
+                }
+
+                this.style.borderColor = "#fb923c";
+                const saveKey = `${studentId}-${type}`;
+                pendingSaves.add(saveKey);
+
+                saveGrade(studentId, type, score).then(success => {
+                    pendingSaves.delete(saveKey);
+                    if (success) {
+                        this.style.borderColor = "#10b981";
+                        // Reload to update final grades
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        this.style.borderColor = "#ef4444";
+                    }
+                });
+            });
+        });
+
+        async function saveGrade(studentId, type, score) {
+            try {
+                const formData = new FormData();
+                formData.append('classId', '@Model.Id');
+                formData.append('studentEntityId', studentId);
+                formData.append('gradeType', type);
+                formData.append('score', score);
+
+                const response = await fetch('/Teacher/Home/SaveGrade', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                return result.success;
+            } catch (error) {
+                console.error('Error saving grade:', error);
+                return false;
+            }
+        }
+
+        function saveAllGrades() {
+            const inputs = document.querySelectorAll('.grade-input');
+            let hasErrors = false;
+
+            inputs.forEach(input => {
+                const score = parseFloat(input.value) || 0;
+                if (input.value && (score < 0 || score > 10)) {
+                    input.style.borderColor = "#ef4444";
+                    hasErrors = true;
+                }
+            });
+
+            if (hasErrors) {
+                alert('Please fix all errors before saving.');
+                return;
+            }
+
+            inputs.forEach(input => {
+                if (input.value) {
+                    input.dispatchEvent(new Event('change'));
+                }
+            });
+
+            if (pendingSaves.size === 0) {
+                alert('All grades saved successfully!');
+            }
+        }
+    </script>
+}

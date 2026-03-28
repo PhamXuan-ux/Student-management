@@ -1,0 +1,107 @@
+﻿@model Student.Management.Domain.Entities.StudentProfile
+@{
+    ViewData["Title"] = "My Profile";
+    Layout = "~/Areas/Student/Views/Shared/_StudentLayout.cshtml";
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>My Profile</h1>
+        <p>Manage your personal information</p>
+    </div>
+    <!-- Nút Edit kích hoạt chế độ sửa -->
+    <div class="table-actions">
+        <button type="button" class="btn btn-primary" id="btnEdit" onclick="enableEditMode()">
+            <i class="bi bi-pencil-square"></i> Edit Profile
+        </button>
+    </div>
+</div>
+
+<!-- Hiển thị thông báo thành công nếu có -->
+@if (TempData["Success"] != null)
+{
+    <div class="alert-success" style="background: #dcfce7; color: #166534; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #bbf7d0;">
+        <i class="bi bi-check-circle-fill"></i> @TempData["Success"]
+    </div>
+}
+
+<div class="table-container" style="padding: 30px; max-width: 800px; background: white; border-radius: 8px; border: 1px solid var(--border);">
+    <form asp-action="UpdateProfile" method="post" id="profileForm">
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="StudentEntityId" />
+
+        <!-- Các trường KHÔNG ĐƯỢC SỬA (Luôn Readonly) -->
+        <div class="row" style="display: flex; gap: 20px; margin-bottom: 15px;">
+            <div class="form-group" style="flex: 1;">
+                <label class="form-label" style="font-weight: 600; color: var(--text-secondary);">Full Name</label>
+                <input type="text" class="form-control" asp-for="FullName" readonly style="background-color: #f3f4f6; color: #6b7280; cursor: not-allowed;" />
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label class="form-label" style="font-weight: 600; color: var(--text-secondary);">Email</label>
+                <input type="email" class="form-control" asp-for="Email" readonly style="background-color: #f3f4f6; color: #6b7280; cursor: not-allowed;" />
+            </div>
+        </div>
+
+        <!-- Các trường CÓ THỂ SỬA (Mặc định Disabled) -->
+        <div class="form-group" style="margin-bottom: 15px;">
+            <label class="form-label" style="font-weight: 600;">Phone Number</label>
+            <input type="text" class="form-control editable-field" asp-for="Phone" disabled />
+        </div>
+
+        <div class="form-group" style="margin-bottom: 15px;">
+            <label class="form-label" style="font-weight: 600;">Date of Birth</label>
+            <input type="date" class="form-control editable-field" asp-for="DateOfBirth" disabled />
+        </div>
+
+        <div class="form-group" style="margin-bottom: 15px;">
+            <label class="form-label" style="font-weight: 600;">Address</label>
+            <textarea class="form-control editable-field" asp-for="Address" rows="3" disabled></textarea>
+        </div>
+
+        <!-- Khu vực nút bấm (Mặc định ẩn nút Save/Cancel) -->
+        <div id="actionButtons" style="margin-top: 25px; display: none; gap: 10px;">
+            <button type="submit" class="btn btn-primary" style="background-color: var(--primary); border: none;">
+                <i class="bi bi-save"></i> Save Changes
+            </button>
+            <button type="button" class="btn btn-outline" onclick="cancelEditMode()" style="border: 1px solid #ddd;">
+                Cancel
+            </button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        // Hàm bật chế độ sửa
+        function enableEditMode() {
+            // 1. Hiện các input có class 'editable-field'
+            document.querySelectorAll('.editable-field').forEach(input => {
+                input.disabled = false; // Mở khóa
+                input.style.backgroundColor = "#fff"; // Làm trắng nền
+                input.style.borderColor = "var(--primary)"; // Viền màu cam
+            });
+
+            // 2. Ẩn nút Edit, Hiện nút Save/Cancel
+            document.getElementById('btnEdit').style.display = 'none';
+            document.getElementById('actionButtons').style.display = 'flex';
+
+            // 3. Focus vào ô đầu tiên để nhập luôn
+            document.querySelector('.editable-field').focus();
+        }
+
+        // Hàm hủy chế độ sửa
+        function cancelEditMode() {
+            // Load lại trang để reset dữ liệu cũ từ DB
+            window.location.reload();
+        }
+    </script>
+
+    <style>
+        /* Style nhẹ cho input khi bị disabled để trông giống Text hơn */
+        .form-control:disabled {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            color: #374151;
+        }
+    </style>
+}

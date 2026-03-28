@@ -1,0 +1,54 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Teacher Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/admin.css?v=15.0" />
+</head>
+<body>
+    <div class="admin-layout">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <img src="/Image/btec_1710525288.png" alt="Logo" class="sidebar-logo">
+                <span class="sidebar-brand-text">Teacher</span>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/Teacher/Home/Index" class="nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")"><i class="bi bi-grid"></i> <span>My Classes</span></a>
+                <a href="/Teacher/Home/Profile" class="nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "Profile" ? "active" : "")"><i class="bi bi-person-badge"></i> <span>My Profile</span></a>
+                <a href="/Teacher/Home/Reports" class="nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "Reports" ? "active" : "")"><i class="bi bi-person-badge"></i> <span>My Reports</span></a>
+            </nav>
+        </div>
+        <div class="main-content">
+            <div class="top-bar">
+                <h4>Welcome, Instructor</h4>
+                <div class="user-menu">
+                    <form action="/Account/Logout" method="post" style="margin: 0;">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn-logout" title="Log Out" style="
+                            background-color: #fef2f2;
+                            color: #ef4444;
+                            border: 1px solid #fee2e2;
+                            padding: 6px 12px;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 0.875rem;
+                            font-weight: 500;
+                            display: flex;
+                            align-items: center;
+                            gap: 5px;
+                            transition: all 0.2s;">
+                            <i class="bi bi-box-arrow-right"></i> Log Out
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="content">@RenderBody()</div>
+        </div>
+    </div>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

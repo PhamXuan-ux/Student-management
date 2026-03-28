@@ -1,0 +1,221 @@
+﻿@model Student.Management.Domain.Entities.Class
+@{
+    ViewData["Title"] = "Attendance Management";
+    Layout = "~/Areas/Teacher/Views/Shared/_TeacherLayout.cshtml";
+    var attendanceByDate = ViewBag.AttendanceByDate as List<IGrouping<DateTime, Student.Management.Domain.Entities.Attendance>>;
+    var classStudents = ViewBag.ClassStudents as List<Student.Management.Domain.Entities.ClassStudent>;
+    var today = ViewBag.Today as DateTime? ?? DateTime.Today;
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <a href="/Teacher/Home/Index" style="color: var(--text-secondary); text-decoration: none;">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+        <h1 style="margin-top: 5px;">📅 Attendance - @Model.ClassName</h1>
+        <p>@Model.Course?.CourseName • @Model.Program?.Name</p>
+    </div>
+    <div class="table-actions">
+        <button class="btn btn-primary" onclick="showMarkAttendanceModal()">
+            <i class="bi bi-plus-circle"></i> Mark Today's Attendance
+        </button>
+    </div>
+</div>
+
+<!-- Today's Quick Attendance -->
+<div class="table-container">
+    <div class="table-header">
+        <h3>🎯 Today's Attendance - @today.ToString("MMM dd, yyyy")</h3>
+    </div>
+
+    <div id="todayAttendanceSection">
+        <form id="bulkAttendanceForm">
+            <input type="hidden" name="classId" value="@Model.Id" />
+            <input type="hidden" name="date" value="@today.ToString("yyyy-MM-dd")" />
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Student Name</th>
+                        <th>Email</th>
+                        <th width="200">Status</th>
+                        <th width="150">Last Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var cs in classStudents.OrderBy(cs => cs.StudentEntity?.Profile?.FullName))
+                    {
+                        var lastAttendance = attendanceByDate?
+                        .SelectMany(g => g)
+                        .FirstOrDefault(a => a.StudentEntityId == cs.StudentEntityId);
+
+                        <tr>
+                            <td>
+                                <strong>@cs.StudentEntity?.Profile?.FullName</strong>
+                            </td>
+                            <td>@cs.StudentEntity?.Profile?.Email</td>
+                            <td>
+                                <select name="attendanceData[@cs.StudentEntityId]" class="form-control attendance-status">
+                                    <option value="Present">✅ Present</option>
+                                    <option value="AbsentWithPermission">🟡 Absent (With Permission)</option>
+                                    <option value="AbsentWithoutPermission">🔴 Absent (No Permission)</option>
+                                </select>
+                            </td>
+                            <td>
+                                @if (lastAttendance != null)
+                                {
+                                    <span class="status-badge
+                                                @(lastAttendance.Status == "Present" ? "status-active" :
+                                                                                    lastAttendance.Status == "AbsentWithPermission" ? "status-pending" : "status-inactive")">
+                                @lastAttendance.Status.Replace("WithPermission", "w/ Permission")
+                                .Replace("WithoutPermission", "w/o Permission")
+                            </span>
+                            <br>
+                            <small>@lastAttendance.AttendanceDate.ToString("MMM dd")</small>
+                                                        }
+                                else
+                                {
+                                    <span class="status-badge status-pending">No Record</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div style="text-align: right; margin-top: 1rem;">
+                <button type="button" class="btn btn-primary" onclick="saveBulkAttendance()">
+                    <i class="bi bi-save"></i> Save Today's Attendance
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Attendance History -->
+<div class="table-container" style="margin-top: 2rem;">
+    <div class="table-header">
+        <h3>📊 Attendance History (Last 30 Days)</h3>
+    </div>
+
+    @if (attendanceByDate != null && attendanceByDate.Any())
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Present</th>
+                    <th>Absent (w/ Permission)</th>
+                    <th>Absent (w/o Permission)</th>
+                    <th>Attendance Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var dateGroup in attendanceByDate)
+                {
+                    var presentCount = dateGroup.Count(a => a.Status == "Present");
+                    var absentWithPermission = dateGroup.Count(a => a.Status == "AbsentWithPermission");
+                    var absentWithoutPermission = dateGroup.Count(a => a.Status == "AbsentWithoutPermission");
+                    var total = dateGroup.Count();
+                    var attendanceRate = total > 0 ? (presentCount * 100 / total) : 0;
+
+                    <tr>
+                        <td>
+                            <strong>@dateGroup.Key.ToString("MMM dd, yyyy")</strong><br>
+                            <small>@dateGroup.Key.ToString("dddd")</small>
+                        </td>
+                        <td>
+                            <span style="color: var(--success); font-weight: bold;">@presentCount</span>
+                        </td>
+                        <td>
+                            <span style="color: var(--warning);">@absentWithPermission</span>
+                        </td>
+                        <td>
+                            <span style="color: var(--error);">@absentWithoutPermission</span>
+                        </td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-weight: bold; color: @(attendanceRate >= 80 ? "var(--success)" : "var(--warning)");">
+                                    @attendanceRate%
+                                </span>
+                                <div style="flex: 1; background: #e5e7eb; height: 6px; border-radius: 3px; width: 100px;">
+                                    <div style="width: @attendanceRate%; height: 100%; background: @(attendanceRate >= 80 ? "var(--success)" : "var(--warning)"); border-radius: 3px;"></div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="empty-state">
+            <i class="bi bi-calendar-x"></i>
+            <p>No attendance records found for the last 30 days.</p>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Set today's attendance status based on existing records
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = '@today.ToString("yyyy-MM-dd")';
+            updateTodayAttendanceDisplay();
+        });
+
+        async function saveBulkAttendance() {
+            const form = document.getElementById('bulkAttendanceForm');
+            const formData = new FormData(form);
+
+            // Convert FormData to JSON
+            const attendanceData = {};
+            for (const [key, value] of formData.entries()) {
+                if (key === 'attendanceData') {
+                    continue;
+                }
+            }
+
+            // Get all attendance status
+            const statusSelects = document.querySelectorAll('.attendance-status');
+            statusSelects.forEach(select => {
+                const studentId = select.name.match(/\[(\d+)\]/)[1];
+                attendanceData[studentId] = select.value;
+            });
+
+            const payload = {
+                classId: formData.get('classId'),
+                date: formData.get('date'),
+                attendanceData: attendanceData
+            };
+
+            try {
+                const response = await fetch('/Teacher/Home/MarkBulkAttendance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Attendance saved successfully!');
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error saving attendance');
+            }
+        }
+
+        function updateTodayAttendanceDisplay() {
+            // This would update the display based on today's existing attendance
+            // For now, we'll just show the form as is
+        }
+    </script>
+}

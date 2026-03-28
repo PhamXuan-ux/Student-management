@@ -1,0 +1,143 @@
+﻿@model List<Student.Management.Domain.Entities.Class>
+@{
+    ViewData["Title"] = "Classes";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    var programs = ViewBag.ProgramList as SelectList;
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>Classes</h1>
+        <p>Manage classes</p>
+    </div>
+    <div class="table-actions">
+        <button class="btn btn-primary btn-add" onclick="openClassModal()">
+            <i class="bi bi-plus"></i> Add Class
+        </button>
+    </div>
+</div>
+
+<div class="table-container">
+    <div class="table-header">
+        <h3>All Classes (@Model.Count)</h3>
+        <div class="search-box">
+            <i class="bi bi-search"></i>
+            <!-- Đặt ID chuẩn -->
+            <input type="text" id="searchClasses" placeholder="Search classes...">
+        </div>
+    </div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Class Name</th>
+                <th>Room</th>
+                <th>Program</th>
+                <th>Dates</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td><b>@item.ClassName</b></td>
+                    <td>@item.Room</td>
+                    <td>@(item.Program?.Name ?? "N/A")</td>
+                    <td>
+                        @(item.StartDate.HasValue? item.StartDate.Value.ToString("dd/MM/yyyy") : "-")
+                        to
+                        @(item.EndDate.HasValue? item.EndDate.Value.ToString("dd/MM/yyyy") : "-")
+                    </td>
+                    <td>
+                        <button class="btn-icon btn-edit" onclick="editClass(@item.Id)"><i class="bi bi-pencil"></i></button>
+                        <button class="btn-icon btn-delete" onclick="deleteClass(@item.Id)"><i class="bi bi-trash"></i></button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal Class -->
+<div id="classModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
+    <div class="modal-content" style="background:white; width:500px; margin:50px auto; padding:20px; border-radius:8px;">
+        <h3 id="classModalTitle">Add Class</h3>
+        <input type="hidden" id="classId">
+        <div class="form-group mb-2"><label>Name</label><input type="text" id="className" class="form-control" style="width:100%"></div>
+        <div class="form-group mb-2"><label>Room</label><input type="text" id="classRoom" class="form-control" style="width:100%"></div>
+        <div class="form-group mb-2">
+            <label>Program</label>
+            <select id="classProgram" class="form-control" asp-items="programs" style="width:100%; padding:8px"><option value="">-- Select Program --</option></select>
+        </div>
+        <div class="row" style="display:flex; gap:10px">
+            <div style="flex:1"><label>Start</label><input type="date" id="classStart" class="form-control" style="width:100%"></div>
+            <div style="flex:1"><label>End</label><input type="date" id="classEnd" class="form-control" style="width:100%"></div>
+        </div>
+        <div style="text-align:right; margin-top:20px;">
+            <button class="btn btn-outline" onclick="document.getElementById('classModal').style.display='none'">Cancel</button>
+            <button class="btn btn-primary" onclick="saveClass()">Save</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // --- CHỨC NĂNG TÌM KIẾM ---
+        document.getElementById('searchClasses')?.addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase();
+            document.querySelectorAll('.table tbody tr').forEach(row => {
+                row.style.display = row.innerText.toLowerCase().includes(term) ? '' : 'none';
+            });
+        });
+
+        // --- MODAL LOGIC ---
+        function openClassModal() {
+            document.getElementById('classModal').style.display = 'block';
+            document.getElementById('classModalTitle').innerText = 'Add Class';
+            document.getElementById('classId').value = '';
+            document.getElementById('className').value = '';
+            document.getElementById('classRoom').value = '';
+            document.getElementById('classStart').value = '';
+            document.getElementById('classEnd').value = '';
+        }
+
+        async function saveClass() {
+            const id = document.getElementById('classId').value;
+            const data = {
+                id: id ? parseInt(id) : 0,
+                className: document.getElementById('className').value,
+                room: document.getElementById('classRoom').value,
+                programId: parseInt(document.getElementById('classProgram').value),
+                startDate: document.getElementById('classStart').value || null,
+                endDate: document.getElementById('classEnd').value || null,
+                isActive: true
+            };
+            const url = id ? '/Admin/Admin/UpdateClass' : '/Admin/Admin/CreateClass';
+            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            if((await res.json()).success) location.reload();
+        }
+
+        async function editClass(id) {
+            const res = await fetch(`/Admin/Admin/GetClass?id=${id}`);
+            const result = await res.json();
+            if(result.success) {
+                openClassModal();
+                document.getElementById('classModalTitle').innerText = 'Edit Class';
+                const d = result.data;
+                document.getElementById('classId').value = d.id;
+                document.getElementById('className').value = d.className;
+                document.getElementById('classRoom').value = d.room;
+                document.getElementById('classProgram').value = d.programId;
+                document.getElementById('classStart').value = d.startDate ? d.startDate.split('T')[0] : '';
+                document.getElementById('classEnd').value = d.endDate ? d.endDate.split('T')[0] : '';
+            }
+        }
+
+        async function deleteClass(id) {
+            if(confirm('Delete?')) {
+                const res = await fetch(`/Admin/Admin/DeleteClass?id=${id}`, { method: 'POST' });
+                if((await res.json()).success) location.reload();
+            }
+        }
+    </script>
+}

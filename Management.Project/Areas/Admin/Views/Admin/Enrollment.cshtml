@@ -1,0 +1,144 @@
+﻿@model List<Student.Management.Domain.Entities.Enrollment>
+@{
+    ViewData["Title"] = "Enrollments";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    // Ép kiểu dynamic list từ Controller
+    var students = ViewBag.Students as IEnumerable<dynamic>;
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>Enrollments</h1>
+        <p>Student course registrations</p>
+    </div>
+    <div class="table-actions">
+        <button class="btn btn-primary btn-add" onclick="openEnrollModal()">
+            <i class="bi bi-plus"></i> New Enrollment
+        </button>
+    </div>
+</div>
+
+<div class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Student</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td><b>@item.Code</b></td>
+                    <td>
+                        @if (item.StudentEntity?.ApplicationStudent != null)
+                        {
+                            @item.StudentEntity.ApplicationStudent.FullName
+                        }
+                        else
+                        {
+
+                            <span>Unknown</span>
+                        }
+                    </td>
+                    <td>@item.CreatedOn.ToString("dd/MM/yyyy")</td>
+                    <td><span class="status-badge @(item.Status == "Completed" ? "status-active" : "status-inactive")">@item.Status</span></td>
+                    <td>
+                        <button class="btn-icon btn-edit" onclick="editEnroll(@item.Id)"><i class="bi bi-pencil"></i></button>
+                        <button class="btn-icon btn-delete" onclick="deleteEnroll(@item.Id)"><i class="bi bi-trash"></i></button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<div id="enrollModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
+    <div class="modal-content" style="background:white; width:500px; margin:50px auto; padding:20px; border-radius:8px;">
+        <h3 id="enrollModalTitle">Add Enrollment</h3>
+        <input type="hidden" id="enrollId">
+        <div class="form-group mb-2"><label>Code (Auto/Manual)</label><input type="text" id="enrollCode" class="form-control" style="width:100%"></div>
+        <div class="form-group mb-2">
+            <label>Student</label>
+            <select id="enrollStudent" class="form-control" style="width:100%; padding:8px;">
+                @if (students != null)
+                {
+                    foreach (var s in students)
+                    {
+                        // Sử dụng Reflection vì là dynamic type
+                        var id = s.GetType().GetProperty("Id").GetValue(s, null);
+                        var name = s.GetType().GetProperty("FullName").GetValue(s, null);
+                        <option value="@id">@name</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="form-group mb-2"><label>Note</label><input type="text" id="enrollNote" class="form-control" style="width:100%"></div>
+        <div class="form-group mb-2">
+            <label>Status</label>
+            <select id="enrollStatus" class="form-control" style="width:100%; padding:8px;">
+                <option value="Pending">Pending</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+            </select>
+        </div>
+        <div style="text-align:right; margin-top:20px;">
+            <button class="btn btn-outline" onclick="document.getElementById('enrollModal').style.display='none'">Cancel</button>
+            <button class="btn btn-primary" onclick="saveEnroll()">Save</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openEnrollModal() {
+            document.getElementById('enrollModal').style.display = 'block';
+            document.getElementById('enrollModalTitle').innerText = 'Add Enrollment';
+            document.getElementById('enrollId').value = '';
+            document.getElementById('enrollCode').value = 'ENR-' + Math.floor(Math.random() * 10000);
+            document.getElementById('enrollNote').value = '';
+        }
+
+        async function saveEnroll() {
+            const id = document.getElementById('enrollId').value;
+            const data = {
+                id: id ? parseInt(id) : 0,
+                code: document.getElementById('enrollCode').value,
+                studentEntityId: parseInt(document.getElementById('enrollStudent').value),
+                note: document.getElementById('enrollNote').value,
+                status: document.getElementById('enrollStatus').value,
+                isActive: true
+            };
+            const url = id ? '/Admin/Admin/UpdateEnrollment' : '/Admin/Admin/CreateEnrollment';
+            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            const result = await res.json();
+            if(result.success) location.reload(); else alert(result.message);
+        }
+
+        async function editEnroll(id) {
+            const res = await fetch(`/Admin/Admin/GetEnrollment?id=${id}`);
+            const result = await res.json();
+            if(result.success) {
+                openEnrollModal();
+                document.getElementById('enrollModalTitle').innerText = 'Edit Enrollment';
+                const d = result.data;
+                document.getElementById('enrollId').value = d.id;
+                document.getElementById('enrollCode').value = d.code;
+                document.getElementById('enrollStudent').value = d.studentEntityId;
+                document.getElementById('enrollNote').value = d.note;
+                document.getElementById('enrollStatus').value = d.status;
+            }
+        }
+
+        async function deleteEnroll(id) {
+            if(confirm('Delete?')) {
+                const res = await fetch(`/Admin/Admin/DeleteEnrollment?id=${id}`, { method: 'POST' });
+                if((await res.json()).success) location.reload();
+            }
+        }
+    </script>
+}

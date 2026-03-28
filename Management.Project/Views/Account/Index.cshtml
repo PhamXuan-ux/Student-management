@@ -1,0 +1,107 @@
+﻿@{
+    ViewData["Title"] = "Login & Register";
+    Layout = null;  // bỏ layout nếu chỉ muốn form đơn
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/account.css" />
+</head>
+<body>
+
+    <div class="container" id="container">
+        <!-- Register -->
+        <div class="form-container sign-up-container">
+            <form id="registerForm">
+                <h1>School Rules</h1>
+                <div class="social-container">
+                    <i class="fas fa-school fa-2x" style="color: var(--primary);"></i>
+                </div>
+
+                <ul class="rules-list">
+                    <li>
+                        <i class="fas fa-check-circle"></i>
+                        Use the website for learning, teaching, and academic purposes only.
+                    </li>
+                    <li>
+                        <i class="fas fa-check-circle"></i>
+                        Log in using your personal account and do not share your credentials with others.
+                    </li>
+                    <li>
+                        <i class="fas fa-check-circle"></i>
+                        Protect your personal information and follow the school's data security policies.
+                    </li>
+                    <li>
+                        <i class="fas fa-check-circle"></i>
+                        Do not upload, comment, or share content that is unlawful, inappropriate, or misleading.
+                    </li>
+                    
+                </ul>
+
+            </form>
+        </div>
+
+        <!-- Login -->
+        <div class="form-container sign-in-container">
+            <form id="loginForm">
+                <h1>Sign in</h1>
+                <div class="social-container">
+                    @* <a href="#" class="social"><i class="fab fa-facebook-f"></i></a> *@
+                    <a href="#" class="social"><i class="fab fa-google-plus-g"></i></a>
+                    @* <a href="#" class="social"><i class="fab fa-linkedin-in"></i></a> *@
+                </div>
+                <span>or use your account</span>
+                <input type="email" id="loginEmail" placeholder="Email" required />
+                <input type="password" id="loginPassword" placeholder="Password" required />
+                <a href="#">Forgot your password?</a>
+                <button type="submit">Sign In</button>
+            </form>
+        </div>
+
+        <!-- Overlay -->
+        <div class="overlay-container">
+            <div class="overlay">
+                <div class="overlay-panel overlay-left">
+                    <h1>Welcome Back!</h1>
+                    <p>To keep connected, please login with your personal info</p>
+                    <button class="ghost" id="signIn">Sign In</button>
+                </div>
+                <div class="overlay-panel overlay-right">
+                    <h1>Hello!</h1>
+                    <p>Students and teachers please review school rules carefully before starting.</p>
+                    <button class="ghost" id="signUp">See Rules</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="~/js/account.js"></script>
+    <script>
+        // Debug: Test kết nối
+        console.log("Account page loaded");
+
+        // Test check auth status
+        fetch('/Account/CheckAuth')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Current auth status:', data);
+                if (data.isAuthenticated) {
+                    console.log('Already logged in as:', data.user);
+                    // Tự động redirect nếu đã đăng nhập
+                    if (data.user.role === 'Admin') {
+                        window.location.href = '/Admin/Admin';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Auth check failed:', error);
+            });
+    </script>
+</body>
+</html>

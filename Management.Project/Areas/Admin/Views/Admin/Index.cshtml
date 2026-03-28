@@ -1,0 +1,240 @@
+﻿@{
+    ViewData["Title"] = "Admin Dashboard";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+@section Styles {
+    <style>
+        /* GRID CHO 2 BIỂU ĐỒ */
+        .charts-grid {
+            display: grid;
+            /* Nếu màn hình > 800px+gap, sẽ chia 2 cột. Nếu nhỏ hơn, tự động xuống dòng (1 cột) */
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Card chứa biểu đồ */
+        .chart-card {
+            background: var(--surface);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            height: 400px; /* Chiều cao cố định để 2 biểu đồ bằng nhau */
+        }
+
+        .chart-header {
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+            .chart-header h3 {
+                font-size: 1.1rem;
+                font-weight: 600;
+                color: var(--text-primary);
+                margin: 0;
+            }
+
+        /* Container chứa canvas - QUAN TRỌNG */
+        .chart-container {
+            position: relative;
+            flex-grow: 1;
+            width: 100%;
+            height: 100%; /* Chiếm hết phần còn lại của card */
+            overflow: hidden;
+        }
+    </style>
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>Admin Dashboard</h1>
+        <p>Welcome to Student Management System - Overview and Analytics</p>
+    </div>
+    <div class="table-actions">
+        <button class="btn btn-outline" onclick="refreshDashboard()">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+        </button>
+    </div>
+</div>
+
+<!-- Stats Grid -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-card-header"><h3>Total Students</h3><div class="stat-icon"><i class="bi bi-people"></i></div></div>
+        <div class="stat-number" id="totalStudents">@ViewBag.Stats.TotalStudents</div>
+        <div class="stat-label">Registered students</div>
+        <div class="stat-trend trend-up"><i class="bi bi-arrow-up"></i> <span>12% from last month</span></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header"><h3>Total Teachers</h3><div class="stat-icon"><i class="bi bi-person-badge"></i></div></div>
+        <div class="stat-number" id="totalTeachers">@ViewBag.Stats.TotalTeachers</div>
+        <div class="stat-label">Active teachers</div>
+        <div class="stat-trend trend-up"><i class="bi bi-arrow-up"></i> <span>5% from last month</span></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header"><h3>Total Classes</h3><div class="stat-icon"><i class="bi bi-door-open"></i></div></div>
+        <div class="stat-number" id="totalClasses">@ViewBag.Stats.TotalClasses</div>
+        <div class="stat-label">Active classes</div>
+        <div class="stat-trend trend-up"><i class="bi bi-arrow-up"></i> <span>8% from last month</span></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header"><h3>Total Courses</h3><div class="stat-icon"><i class="bi bi-book"></i></div></div>
+        <div class="stat-number" id="totalCourses">@ViewBag.Stats.TotalCourses</div>
+        <div class="stat-label">Available courses</div>
+        <div class="stat-trend trend-up"><i class="bi bi-arrow-up"></i> <span>15% from last month</span></div>
+    </div>
+</div>
+
+<!-- Charts Section (Đã cập nhật Grid) -->
+<div class="charts-grid">
+    <!-- Chart 1 -->
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3>Students by Department</h3>
+        </div>
+        <div class="chart-container">
+            <canvas id="departmentChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Chart 2 -->
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3>Classes by Program</h3>
+        </div>
+        <div class="chart-container">
+            <canvas id="programChart"></canvas>
+        </div>
+    </div>
+</div>
+
+@* <!-- Recent Activity -->
+<div class="table-container">
+    <div class="table-header">
+        <h3>Recent Activity</h3>
+        <div class="table-actions">
+            <button class="btn btn-outline btn-sm"><i class="bi bi-filter"></i> Filter</button>
+        </div>
+    </div>
+    <div class="p-4">
+        <div class="empty-state">
+            <i class="bi bi-activity"></i>
+            <h3>No recent activity</h3>
+            <p>Recent system activities will appear here</p>
+        </div>
+    </div>
+</div> *@
+
+@section Scripts {
+    <script>
+        let departmentChart, programChart;
+
+        // 1. Department Chart (Doughnut)
+        function initDepartmentChart(data) {
+            const ctx = document.getElementById('departmentChart').getContext('2d');
+            if (departmentChart) departmentChart.destroy();
+
+            departmentChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(d => d.department),
+                    datasets: [{
+                        data: data.map(d => d.count),
+                        backgroundColor: ['#ea580c', '#f97316', '#fb923c', '#fdba74', '#fed7aa', '#ffedd5'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // QUAN TRỌNG: Để chart co giãn theo container cha
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    },
+                    cutout: '60%'
+                }
+            });
+        }
+
+        // 2. Program Chart (Bar)
+        function initProgramChart(data) {
+            const ctx = document.getElementById('programChart').getContext('2d');
+            if (programChart) programChart.destroy();
+
+            programChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.program),
+                    datasets: [{
+                        label: 'Number of Classes',
+                        data: data.map(d => d.count),
+                        backgroundColor: '#f97316',
+                        borderRadius: 4,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // QUAN TRỌNG
+                    scales: {
+                        y: { beginAtZero: true, grid: { drawBorder: false } },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // Load data
+        async function loadRealData() {
+            try {
+                showLoading();
+                const response = await fetch('/Admin/Admin/GetDashboardStats');
+                const result = await response.json();
+
+                if (result.success) {
+                    const stats = result.data;
+                    document.getElementById('totalStudents').textContent = stats.totalStudents;
+                    document.getElementById('totalTeachers').textContent = stats.totalTeachers;
+                    document.getElementById('totalClasses').textContent = stats.totalClasses;
+                    document.getElementById('totalCourses').textContent = stats.totalCourses;
+
+                    if (stats.studentsByDepartment && stats.studentsByDepartment.length > 0)
+                        initDepartmentChart(stats.studentsByDepartment);
+                    else
+                        initDefaultCharts();
+
+                    if (stats.classesByProgram && stats.classesByProgram.length > 0)
+                        initProgramChart(stats.classesByProgram);
+                    else
+                        initDefaultCharts();
+                } else {
+                    initDefaultCharts();
+                }
+            } catch (error) {
+                console.error(error);
+                initDefaultCharts();
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function initDefaultCharts() {
+            initDepartmentChart([{ department: 'IT', count: 10 }, { department: 'Biz', count: 5 }]);
+            initProgramChart([{ program: 'Bachelor', count: 8 }, { program: 'Master', count: 2 }]);
+        }
+
+        function showLoading() {
+            document.querySelectorAll('.stat-number').forEach(el => el.innerHTML = '<div class="spinner"></div>');
+        }
+        function hideLoading() {} // Handled by data update
+        function refreshDashboard() { loadRealData(); }
+
+        document.addEventListener('DOMContentLoaded', loadRealData);
+    </script>
+}

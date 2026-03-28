@@ -1,0 +1,259 @@
+﻿@{
+    ViewData["Title"] = "Grade Management";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+@section Styles {
+    <style>
+        .grade-input {
+            width: 80px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 4px 8px;
+            transition: all 0.2s;
+        }
+
+            .grade-input:focus {
+                border-color: var(--primary);
+                outline: none;
+                box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            }
+
+            .grade-input.saved {
+                border-color: #10b981;
+                background-color: #ecfdf5;
+            }
+
+            .grade-input.error {
+                border-color: #ef4444;
+                background-color: #fef2f2;
+            }
+
+        .final-grade-badge {
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85em;
+        }
+
+        .pass {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .fail {
+            background-color: #fee2e2;
+            color: #b91c1c;
+        }
+    </style>
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>Grade Management</h1>
+        <p>Manage student grades for all classes</p>
+    </div>
+</div>
+
+<div class="table-container">
+    <div class="table-header">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <h3>Select Class:</h3>
+            <select id="classSelector" class="form-control" style="width: 300px;">
+                <option value="">-- Choose a Class --</option>
+                @if (ViewBag.ClassList != null)
+                {
+                    foreach (var item in ViewBag.ClassList)
+                    {
+                        <option value="@item.Value">@item.Text</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="table-actions">
+            <button class="btn btn-outline" onclick="location.reload()">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <div id="loadingState" style="display: none; text-align: center; padding: 2rem;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p style="margin-top: 10px; color: var(--text-secondary);">Loading grade data...</p>
+    </div>
+
+    <div id="emptyState" style="text-align: center; padding: 3rem;">
+        <i class="bi bi-journal-x" style="font-size: 3rem; color: #cbd5e1;"></i>
+        <p style="margin-top: 10px; color: var(--text-secondary);">Please select a class to view grades.</p>
+    </div>
+
+    <div id="gradeTableContainer" style="display: none;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Student Name</th>
+                    <th>Email</th>
+                    <th class="text-center">Quiz (20%)</th>
+                    <th class="text-center">Assignment (30%)</th>
+                    <th class="text-center">Midterm (20%)</th>
+                    <th class="text-center">Final (30%)</th>
+                    <th class="text-center">Final Grade</th>
+                </tr>
+            </thead>
+            <tbody id="gradeTableBody">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Khi thay đổi lớp học
+            $('#classSelector').change(function() {
+                var classId = $(this).val();
+                if (classId) {
+                    loadGrades(classId);
+                } else {
+                    $('#gradeTableContainer').hide();
+                    $('#emptyState').show();
+                }
+            });
+        });
+
+        function loadGrades(classId) {
+            $('#emptyState').hide();
+            $('#gradeTableContainer').hide();
+            $('#loadingState').show();
+            $('#gradeTableBody').empty();
+
+            $.ajax({
+                url: '/Admin/Admin/GetGradesByClass',
+                type: 'GET',
+                data: { classId: classId },
+                success: function(response) {
+                    $('#loadingState').hide();
+                    if (response.success) {
+                        renderTable(response.data, classId);
+                        $('#gradeTableContainer').fadeIn();
+                    } else {
+                        alert('Error loading grades: ' + response.message);
+                    }
+                },
+                error: function() {
+                    $('#loadingState').hide();
+                    alert('Server error occurred.');
+                }
+            });
+        }
+
+        function renderTable(data, classId) {
+            if (data.length === 0) {
+                $('#gradeTableBody').html('<tr><td colspan="7" class="text-center">No students found in this class.</td></tr>');
+                return;
+            }
+
+            data.forEach(function(student) {
+                var finalGradeDisplay = student.finalGrade !== null
+                    ? `<span class="final-grade-badge ${student.finalGrade >= 5 ? 'pass' : 'fail'}">${student.finalGrade.toFixed(1)}</span>`
+                    : '<span style="color: #94a3b8;">--</span>';
+
+                var row = `
+                    <tr>
+                        <td>
+                            <strong>${student.studentName}</strong>
+                        </td>
+                        <td style="color: var(--text-secondary);">${student.email}</td>
+                        <td class="text-center">
+                            ${renderInput(classId, student.studentId, 'Quiz', student.quiz)}
+                        </td>
+                        <td class="text-center">
+                            ${renderInput(classId, student.studentId, 'Assignment', student.assignment)}
+                        </td>
+                        <td class="text-center">
+                            ${renderInput(classId, student.studentId, 'Midterm', student.midterm)}
+                        </td>
+                        <td class="text-center">
+                            ${renderInput(classId, student.studentId, 'Final', student.final)}
+                        </td>
+                        <td class="text-center" style="font-size: 1.1em;">
+                            ${finalGradeDisplay}
+                        </td>
+                    </tr>
+                `;
+                $('#gradeTableBody').append(row);
+            });
+
+            // Bind sự kiện change cho các ô input vừa tạo
+            $('.grade-input').change(function() {
+                saveGrade(this);
+            });
+        }
+
+        function renderInput(classId, studentId, type, value) {
+            var val = value !== null && value !== undefined ? value : '';
+            return `<input type="number" class="grade-input"
+                        data-class="${classId}"
+                        data-student="${studentId}"
+                        data-type="${type}"
+                        value="${val}"
+                        min="0" max="10" step="0.1">`;
+        }
+
+        function saveGrade(inputElement) {
+            var $input = $(inputElement);
+            var classId = $input.data('class');
+            var studentId = $input.data('student');
+            var type = $input.data('type');
+            var score = parseFloat($input.val());
+
+            // Validate
+            if (isNaN(score) || score < 0 || score > 10) {
+                if ($input.val() === '') return; // Bỏ qua nếu xóa trắng (hoặc có thể xử lý xóa điểm ở đây)
+                $input.addClass('error');
+                alert('Score must be between 0 and 10');
+                return;
+            }
+
+            var payload = {
+                ClassId: classId,
+                StudentEntityId: studentId,
+                GradeType: type,
+                Score: score
+            };
+
+            // Hiệu ứng đang lưu
+            $input.css('opacity', '0.7');
+
+            $.ajax({
+                url: '/Admin/Admin/SaveGrade',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(payload),
+                success: function(response) {
+                    $input.css('opacity', '1');
+                    if (response.success) {
+                        $input.removeClass('error').addClass('saved');
+                        // Tự động reload lại bảng sau 1s để cập nhật điểm tổng kết mới
+                        // (Hoặc có thể tối ưu bằng cách tính JS tại client để đỡ load lại)
+                        setTimeout(() => {
+                             // Xóa class saved để người dùng biết trạng thái bình thường
+                             $input.removeClass('saved');
+                        }, 2000);
+                    } else {
+                        $input.addClass('error');
+                        alert(response.message);
+                    }
+                },
+                error: function() {
+                    $input.css('opacity', '1');
+                    $input.addClass('error');
+                    alert('Failed to save grade.');
+                }
+            });
+        }
+    </script>
+}

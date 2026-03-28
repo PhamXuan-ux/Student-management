@@ -1,0 +1,181 @@
+﻿@model List<dynamic>
+@{
+    ViewData["Title"] = "Teaching Reports";
+    Layout = "~/Areas/Teacher/Views/Shared/_TeacherLayout.cshtml";
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>Teaching Reports & Analytics</h1>
+        <p>Comprehensive overview of your teaching performance</p>
+    </div>
+    <div class="table-actions">
+        <button class="btn btn-primary" onclick="generateOverallReport()">
+            <i class="bi bi-download"></i> Export Report
+        </button>
+    </div>
+</div>
+
+<!-- Overall Statistics -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <h3>Total Classes</h3>
+            <div class="stat-icon"><i class="bi bi-easel"></i></div>
+        </div>
+        <div class="stat-number">@ViewBag.TotalClasses</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <h3>Total Students</h3>
+            <div class="stat-icon"><i class="bi bi-people"></i></div>
+        </div>
+        <div class="stat-number">@ViewBag.TotalStudents</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <h3>Overall Pass Rate</h3>
+            <div class="stat-icon"><i class="bi bi-graph-up"></i></div>
+        </div>
+        <div class="stat-number">@ViewBag.OverallPassRate.ToString("0.0")%</div>
+    </div>
+
+    
+</div>
+
+<!-- Class Reports -->
+<div class="table-container">
+    <div class="table-header">
+        <h3>Class Performance Reports</h3>
+        <div class="table-actions">
+            <select id="reportType" class="form-control" style="width: auto; display: inline-block;">
+                <option value="overview">Overview Report</option>
+                <option value="detailed">Detailed Report</option>
+                <option value="attendance">Attendance Report</option>
+            </select>
+        </div>
+    </div>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Class Name</th>
+                <th>Course</th>
+                <th>Students</th>
+                <th>Pass Rate</th>
+                <th>Avg Grade</th>
+                <th>Attendance</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var report in Model)
+            {
+                <tr>
+                    <td>
+                        <strong>@report.ClassName</strong><br>
+                        <small style="color: var(--text-secondary);">
+                            @report.StartDate - @report.EndDate
+                        </small>
+                    </td>
+                    <td>@report.Course</td>
+                    <td>@report.TotalStudents</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-weight: bold; color: @(report.PassRate >= 70 ? "var(--success)" : "var(--warning)");">
+                                @report.PassRate%
+                            </span>
+                            <div style="flex: 1; background: #e5e7eb; height: 6px; border-radius: 3px;">
+                                <div style="width: @report.PassRate%; height: 100%; background: @(report.PassRate >= 70 ? "var(--success)" : "var(--warning)"); border-radius: 3px;"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span style="font-weight: bold; color: var(--primary);">
+                            @report.AverageGrade
+                        </span>
+                    </td>
+                    <td>
+                        <span style="color: @(report.AttendanceRate >= 80 ? "var(--success)" : "var(--warning)");">
+                            @report.AttendanceRate%
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-sm btn-outline" onclick="generateClassReport('@report.ClassName', '@report.Course')">
+                                <i class="bi bi-download"></i> Export
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- Report Generator -->
+<div class="table-container" style="margin-top: 2rem;">
+    <div class="table-header">
+        <h3>Custom Report Generator</h3>
+    </div>
+    <div style="padding: 2rem;">
+        <div class="form-group">
+            <label class="form-label">Report Type</label>
+            <select id="customReportType" class="form-control">
+                <option value="performance">Class Performance</option>
+                <option value="attendance">Attendance Analysis</option>
+                <option value="grading">Grading Summary</option>
+                <option value="student-progress">Student Progress</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Date Range</label>
+            <div style="display: flex; gap: 1rem;">
+                <input type="date" id="startDate" class="form-control" value="@DateTime.Now.AddMonths(-1).ToString("yyyy-MM-dd")">
+                <input type="date" id="endDate" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Format</label>
+            <select id="reportFormat" class="form-control">
+                <option value="pdf">PDF Document</option>
+                <option value="excel">Excel Spreadsheet</option>
+                <option value="html">HTML Report</option>
+            </select>
+        </div>
+
+        <button class="btn btn-primary" onclick="generateCustomReport()">
+            <i class="bi bi-gear"></i> Generate Custom Report
+        </button>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function generateClassReport(className, courseName) {
+            const reportType = document.getElementById('reportType').value;
+            const startDate = document.getElementById('startDate')?.value;
+            const endDate = document.getElementById('endDate')?.value;
+
+            alert(`Generating ${reportType} report for ${className} (${courseName})...\nDate Range: ${startDate} to ${endDate}`);
+            // In production, this would make an API call to generate the actual report
+        }
+
+        function generateOverallReport() {
+            alert('Generating overall teaching report...\nThis would download a comprehensive PDF report in production.');
+        }
+
+        function generateCustomReport() {
+            const reportType = document.getElementById('customReportType').value;
+            const format = document.getElementById('reportFormat').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            alert(`Generating custom ${reportType} report in ${format.toUpperCase()} format...\nDate Range: ${startDate} to ${endDate}`);
+        }
+    </script>
+}

@@ -1,0 +1,101 @@
+﻿@{
+    ViewData["Title"] = "Class Schedule";
+    Layout = "~/Areas/Student/Views/Shared/_StudentLayout.cshtml";
+    var schedules = ViewBag.Schedules as List<Student.Management.Domain.Entities.Schedule>;
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>Class Schedule</h1>
+        <p>Your complete class timetable</p>
+    </div>
+</div>
+
+<!-- Debug thông tin -->
+@if (schedules != null && schedules.Any())
+{
+    <div style="margin-bottom: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 5px;">
+        <small>Total schedules found: @schedules.Count</small>
+    </div>
+
+    var daysOfWeek = new List<string> { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
+
+    foreach (var day in daysOfWeek)
+    {
+        var daySchedules = schedules.Where(s => s.DayOfWeek == day).ToList();
+        if (daySchedules.Any())
+        {
+            <div class="table-container" style="margin-bottom: 1.5rem;">
+                <div class="table-header">
+                    <h3>@day</h3>
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Course</th>
+                            <th>Class</th>
+                            <th>Teacher</th>
+                            <th>Room</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var schedule in daySchedules)
+                        {
+                            <tr>
+                                <td style="color: var(--primary); font-weight: bold;">
+                                    @schedule.StartTime - @schedule.EndTime
+                                </td>
+                                <td>
+                                    @if (schedule.Class?.Course != null)
+                                    {
+                                        <strong>@schedule.Class.Course.CourseName</strong>
+                                    }
+                                    else
+                                    {
+                                        <span style="color: #dc3545;">Course not loaded</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (schedule.Class != null)
+                                    {
+                                        @schedule.Class.ClassName
+                                    }
+                                    else
+                                    {
+                                        <span style="color: #dc3545;">Class not loaded</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (schedule.Class?.Teacher != null)
+                                    {
+                                        @schedule.Class.Teacher.FullName
+                                    }
+                                    else
+                                    {
+                                        <span style="color: #dc3545;">Teacher not loaded</span>
+                                    }
+                                </td>
+                                <td>@schedule.Room</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+}
+else
+{
+    <div class="table-container">
+        <div class="table-header">
+            <h3>Class Schedule</h3>
+        </div>
+        <div style="padding: 3rem; text-align: center; color: var(--text-secondary);">
+            <i class="bi bi-calendar-x" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+            <h3>No classes scheduled</h3>
+            <p>You don't have any classes in your schedule.</p>
+            <p><small>Make sure you're enrolled in at least one class.</small></p>
+        </div>
+    </div>
+}

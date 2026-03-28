@@ -1,0 +1,195 @@
+﻿@model Student.Management.Domain.Entities.StudentEntity
+@{
+    ViewData["Title"] = "Student Dashboard";
+    Layout = "~/Areas/Student/Views/Shared/_StudentLayout.cshtml";
+    var currentClasses = ViewBag.CurrentClasses as List<Student.Management.Domain.Entities.ClassStudent>;
+    var weeklySchedule = ViewBag.WeeklySchedule as List<dynamic>;
+    var recentGrades = ViewBag.RecentGrades as List<Student.Management.Domain.Entities.Grade>;
+    // var attendanceStats = ViewBag.AttendanceStats as dynamic;
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1> Student Dashboard</h1>
+        <p>Welcome back, @Model.Profile?.FullName</p>
+    </div>
+</div>
+
+<!-- Statistics -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <h3>Current Classes</h3>
+            <div class="stat-icon"><i class="bi bi-book"></i></div>
+        </div>
+        <div class="stat-number">@ViewBag.TotalClasses</div>
+        <div class="stat-label">@ViewBag.TotalCredits credits</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <h3>GPA</h3>
+            <div class="stat-icon"><i class="bi bi-graph-up"></i></div>
+        </div>
+        <div class="stat-number">@ViewBag.GPA</div>
+        <div class="stat-label">Current GPA</div>
+    </div>
+
+    @* <div class="stat-card">
+        <div class="stat-card-header">
+            <h3>Program</h3>
+            <div class="stat-icon"><i class="bi bi-mortarboard"></i></div>
+        </div>
+        <div class="stat-number" style="font-size: 1.25rem;">
+            @if (currentClasses.Any())
+            {
+                <span>@currentClasses.First().Class.Program?.Name</span>
+            }
+            else
+            {
+                <span>No Program</span>
+            }
+        </div>
+        <div class="stat-label">Enrolled Program</div>
+    </div> *@
+
+    @* @if (attendanceStats != null)
+    {
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <h3>Attendance</h3>
+                <div class="stat-icon"><i class="bi bi-calendar-check"></i></div>
+            </div>
+            <div class="stat-number">@attendanceStats.Rate%</div>
+            <div class="stat-label">Last 30 days</div>
+        </div>
+    } *@
+</div>
+
+<div class="row" style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 2rem;">
+    <!-- Today's Schedule -->
+    <div class="table-container" style="flex: 1; min-width: 300px;">
+        <div class="table-header">
+            <h3> Today's Classes</h3>
+        </div>
+        @{
+            var today = DateTime.Now.DayOfWeek.ToString();
+            var todaySchedule = weeklySchedule?.Where(s => s.Day == today).ToList();
+        }
+        @if (todaySchedule != null && todaySchedule.Any())
+        {
+            <table class="table">
+                <tbody>
+                    @foreach (var schedule in todaySchedule)
+                    {
+                        <tr>
+                            <td style="color: var(--primary); font-weight: bold;">@schedule.Time</td>
+                            <td>
+                                <strong>@schedule.Course</strong><br>
+                                <small>@schedule.Room • @schedule.Teacher</small>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <div style="padding: 2rem; text-align: center; color: var(--text-secondary);">
+                <i class="bi bi-emoji-smile" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                <p>No classes scheduled for today!</p>
+            </div>
+        }
+    </div>
+
+    <!-- Recent Grades -->
+    <div class="table-container" style="flex: 1; min-width: 300px;">
+        <div class="table-header">
+            <h3> Recent Grades</h3>
+            <a href="/Student/Home/Grades" class="btn btn-sm btn-outline">View All</a>
+        </div>
+        @if (recentGrades != null && recentGrades.Any())
+        {
+            <table class="table">
+                <tbody>
+                    @foreach (var grade in recentGrades)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@grade.Class?.Course?.CourseName</strong><br>
+                                <small>@grade.GradeType</small>
+                            </td>
+                            <td style="text-align: right;">
+                                <span class="status-badge @(grade.Score >= 5 ? "status-active" : "status-inactive")">
+                                    @grade.Score.ToString("0.0")
+                                </span><br>
+                                <small>out of @grade.MaxScore</small>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <div style="padding: 2rem; text-align: center; color: var(--text-secondary);">
+                <i class="bi bi-journal" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                <p>No recent grades</p>
+            </div>
+        }
+    </div>
+</div>
+
+@* <!-- Current Classes -->
+<div class="table-container" style="margin-top: 2rem;">
+    <div class="table-header">
+        <h3>📚 My Current Classes</h3>
+    </div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Course</th>
+                <th>Instructor</th>
+                <th>Schedule</th>
+                <th>Room</th>
+                <th>Current Grade</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var classStudent in currentClasses)
+            {
+                <tr>
+                    <td>
+                        <strong>@classStudent.Class.Course.CourseName</strong><br>
+                        <small>@classStudent.Class.ClassName</small>
+                    </td>
+                    <td>@classStudent.Class.Teacher.FullName</td>
+                    <td>
+                        @if (classStudent.Class.Schedules.Any())
+                        {
+                            var schedule = classStudent.Class.Schedules.First();
+                            <span>@schedule.DayOfWeek @schedule.StartTime-@schedule.EndTime</span>
+                        }
+                        else
+                        {
+                            <span>No schedule</span>
+                        }
+                    </td>
+                    <td>@classStudent.Class.Room</td>
+                    <td>
+                        @if (classStudent.Grade.HasValue)
+                        {
+                            <span class="status-badge @(classStudent.Grade >= 5 ? "status-active" : "status-inactive")">
+                                @classStudent.Grade.Value.ToString("0.0")
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="status-badge status-pending">In Progress</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div> *@
